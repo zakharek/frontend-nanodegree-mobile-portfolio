@@ -10,7 +10,20 @@ var gulp = require('gulp'),
     sequence = require('run-sequence'),
     PORT = 8000,
     PAGE_SPEED_THRESHOLD = 90,
-    site;
+    site,
+    desktopPsiData,
+    mobilePsiData;
+
+function runPsi(strategy, doneCallback) {
+    console.log("running psi for strategy " + strategy);
+    console.log("target psi threshold is " + PAGE_SPEED_THRESHOLD);
+
+    psi(site, {
+        nokey: 'true',
+        strategy: strategy,
+        threshold: PAGE_SPEED_THRESHOLD
+    }).then(doneCallback);
+}
 
 gulp.task('connect', function () {
     connect.server({
@@ -29,30 +42,41 @@ gulp.task('ngrok', function (cb) {
 });
 
 gulp.task('psi-desktop', function (cb) {
-    console.log("target psi threshold is " + PAGE_SPEED_THRESHOLD);
-
-    psi(site, {
-        nokey: 'true',
-        strategy: 'desktop',
-        threshold: PAGE_SPEED_THRESHOLD
-    }).then(function (data) {
-        var speed = data.ruleGroups.SPEED.score,
-            speedIsOk = speed >= PAGE_SPEED_THRESHOLD;
-
-        console.log("page speed " + speed + " does" + (speedIsOk ? "" : " not") + " meet threshold " + PAGE_SPEED_THRESHOLD);
-        console.log(data.pageStats);
-        console.log(JSON.stringify(data, null, 4));
-
-        process.exit(speedIsOk ? 0 : 1);
+    runPsi('desktop', function (data) {
+        desktopPsiData = data;
         cb();
     });
 });
 
-gulp.task('psi', function (cb) {
+gulp.task('psi-mobile', function (cb) {
+    runPsi('mobile', function (data) {
+        mobilePsiData = data;
+        cb();
+    });
+});
+
+gulp.task('psi-seq', function (cb) {
     return sequence(
       'connect',
       'ngrok',
       'psi-desktop',
+      'psi-mobile',
       cb
     );
+});
+
+gulp.task('psi', ['psi-seq'], function () {
+
+    var desktopSpeed = desktopPsiData.ruleGroups.SPEED.score,
+        desktopSpeedIsOk = desktopSpeed >= PAGE_SPEED_THRESHOLD,
+        mobileSpeed = mobilePsiData.ruleGroups.SPEED.score,
+        mobileSpeedIsOk = mobileSpeed >= PAGE_SPEED_THRESHOLD;
+
+    console.log("desktop page speed " + desktopSpeed + " does" + (desktopSpeedIsOk ? "" : " not") + " meet threshold " + PAGE_SPEED_THRESHOLD);
+    console.log("mobile page speed " + mobileSpeed + " does" + (mobileSpeedIsOk ? "" : " not") + " meet threshold " + PAGE_SPEED_THRESHOLD);
+
+    console.log(desktopPsiData.pageStats);
+    console.log(JSON.stringify(desktopPsiData, null, 4));
+
+    process.exit(desktopSpeedIsOk && mobileSpeedIsOk ? 0 : 1);
 });

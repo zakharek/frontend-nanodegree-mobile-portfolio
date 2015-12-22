@@ -41,6 +41,7 @@ gulp.task('psi-desktop', function (cb) {
 
         console.log("page speed " + speed + " does" + (speedIsOk ? "" : " not") + " meet threshold " + PAGE_SPEED_THRESHOLD);
         console.log(data.pageStats);
+        console.log(JSON.stringify(data, null, 4));
 
         process.exit(speedIsOk ? 0 : 1);
         cb();

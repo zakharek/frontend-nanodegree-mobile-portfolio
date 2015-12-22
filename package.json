@@ -3,6 +3,11 @@
     "version": "1.0.6",
     "author": "",
     "dependencies": {
-        "gulp": "^3.9.0"
+        "gulp": "^3.9.0",
+        "gulp-exit": "^0.0.2",
+        "ngrok": "~0.1.8",
+        "psi": "^2.0.2",
+        "run-sequence": "^1.1.5",
+        "gulp-connect": "^2.3.1"
     }
 }

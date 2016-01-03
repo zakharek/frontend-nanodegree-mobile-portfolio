@@ -8,6 +8,8 @@ var config = require('./gulp.config')(),
     //plumber = require('gulp-plumber'),
     jshint = require('gulp-jshint'), //https://github.com/spalger/gulp-jshint
     jscs = require('gulp-jscs'), //https://github.com/jscs-dev/gulp-jscs
+    imagemin = require('gulp-imagemin'),
+    del = require('del'),
     connect = require('gulp-connect'), //https://www.npmjs.com/package/gulp-connect
     ngrok = require('ngrok'), //https://github.com/bubenshchykov/ngrok/issues/34#issuecomment-155420006
     psi = require('psi'), //https://github.com/addyosmani/psi
@@ -24,6 +26,37 @@ gulp.task('vet', function () {
     .pipe(jshint.reporter('jshint-stylish', { verbose: true }))
     .pipe(jscs())
     .pipe(jscs.reporter());
+});
+
+gulp.task('optimise', function (cb) {
+    return sequence(
+      'clean',
+      'all-optimisation-tasks',
+      cb
+    );
+});
+
+gulp.task('clean', function (cb) {
+    clean(config.buildDir, cb);
+});
+
+gulp.task('all-optimisation-tasks', ['images', 'copy_static_files'], function (cb) {
+    log('Finished optimisation');
+    cb();
+});
+
+gulp.task('images', function () {
+    log('Copying and compressing the images');
+
+    return gulp
+        .src(config.images)
+        .pipe(imagemin({optimizationLevel: 4}))
+        .pipe(gulp.dest(config.buildDir + 'img'));
+});
+
+gulp.task('copy_static_files', function () {
+    return gulp.src('index.html')
+    .pipe(gulp.dest(config.buildDir))
 });
 
 gulp.task('psi', ['psi-seq'], function () {
@@ -133,6 +166,14 @@ function processPsiResult(strategy, psiData, threshold, verbose) {
     }
 
     return speedIsOk;
+}
+
+function clean(path, cb) {
+    log('Cleaning: ' + path);
+
+    del(path).then(function (p) {
+        cb();
+    });
 }
 
 function log(msg) {

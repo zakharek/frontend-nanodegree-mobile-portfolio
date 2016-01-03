@@ -1,12 +1,13 @@
 ﻿module.exports = function () {
     var config = {
-        buildDir: "",
+        buildDir: "build/",
         allJs: [
             './js/**/*.js'//,
             //'./*.js'
         ],
         port: 8000,
-        pageSpeedThreshold: 90
+        pageSpeedThreshold: 90,
+        images: 'img/**/*.*'
     };
 
     return config;

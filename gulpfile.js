@@ -21,7 +21,7 @@ var config = require('./gulp.config')(),
     desktopPsiData = {},
     mobilePsiData = {};
 
-gulp.task('vet', function () {
+gulp.task('lint', function () {
     return gulp
         .src(config.jsToInspect)
         .pipe(jshint())

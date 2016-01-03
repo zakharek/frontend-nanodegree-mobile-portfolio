@@ -5,63 +5,34 @@
 //http://una.im/gulp-local-psi/
 var config = require('./gulp.config')(),
     gulp = require('gulp'),
-    jshint = require('gulp-jshint'),
-    jscs = require('gulp-jscs'),
-    connect = require('gulp-connect'),
+    //plumber = require('gulp-plumber'),
+    jshint = require('gulp-jshint'), //https://github.com/spalger/gulp-jshint
+    jscs = require('gulp-jscs'), //https://github.com/jscs-dev/gulp-jscs
+    connect = require('gulp-connect'), //https://www.npmjs.com/package/gulp-connect
     ngrok = require('ngrok'), //https://github.com/bubenshchykov/ngrok/issues/34#issuecomment-155420006
-    psi = require('psi'),
-    sequence = require('run-sequence'),
+    psi = require('psi'), //https://github.com/addyosmani/psi
+    sequence = require('run-sequence'), //https://www.npmjs.com/package/run-sequence
+    async = require('async'), //https://github.com/caolan/async
     site,
-    desktopPsiData,
-    mobilePsiData;
+    desktopPsiData = {},
+    mobilePsiData = {};
 
-gulp.task('codecheck', function () {
+gulp.task('vet', function () {
     return gulp
     .src(config.allJs)
-   // .pipe(jscs({ fix: false }));
     .pipe(jshint())
-    .pipe(jshint.reporter('jshint-stylish', { verbose: true }));
+    .pipe(jshint.reporter('jshint-stylish', { verbose: true }))
+    .pipe(jscs())
+    .pipe(jscs.reporter());
 });
 
-function runPsi(strategy, doneCallback) {
-    console.log("running psi for strategy " + strategy);
-    console.log("target psi threshold is " + config.pageSpeedThreshold);
+gulp.task('psi', ['psi-seq'], function () {
+    var desktopSpeedIsOk = processPsiResult('desktop', desktopPsiData, config.pageSpeedThreshold);
+    var mobileSpeedIsOk = processPsiResult('mobile', mobilePsiData, config.pageSpeedThreshold);
+    var underThreshold = desktopSpeedIsOk && mobileSpeedIsOk;
 
-    psi(site, {
-        nokey: 'true',
-        strategy: strategy,
-        threshold: config.pageSpeedThreshold
-    }).then(doneCallback);
-}
-
-gulp.task('connect', function () {
-    connect.server({
-        port: config.port
-    });
-
-    console.log('Started local server: http://localhost:' + config.port);
-});
-
-gulp.task('ngrok', function (cb) {
-    return ngrok.connect({ port: config.port, nokey: true }, function (err, url) {
-        console.log('started ngrok tunnel: ' + url);
-        site = url;
-        cb(err);
-    });
-});
-
-gulp.task('psi-desktop', function (cb) {
-    runPsi('desktop', function (data) {
-        desktopPsiData = data;
-        cb();
-    });
-});
-
-gulp.task('psi-mobile', function (cb) {
-    runPsi('mobile', function (data) {
-        mobilePsiData = data;
-        cb();
-    });
+    log(underThreshold ? 'Everything is under threshold' : 'Some pages are over threshold');
+    process.exit(underThreshold ? 0 : 1);
 });
 
 gulp.task('psi-seq', function (cb) {
@@ -74,23 +45,96 @@ gulp.task('psi-seq', function (cb) {
     );
 });
 
-gulp.task('psi', ['psi-seq'], function () {
+gulp.task('connect', function (cb) {
+    connect.server({
+        port: config.port,
+        root: config.buildDir
+    });
 
-    var desktopSpeed = desktopPsiData.ruleGroups.SPEED.score,
-        desktopSpeedIsOk = desktopSpeed >= config.pageSpeedThreshold,
-        mobileSpeed = mobilePsiData.ruleGroups.SPEED.score,
-        mobileSpeedIsOk = mobileSpeed >= config.pageSpeedThreshold;
+    log('Started local server from directory: ' + config.buildDir + '/');
+    log('Url: http://localhost:' + config.port);
 
-    console.log("desktop page speed " + desktopSpeed + " does" + (desktopSpeedIsOk ? "" : " not") + " meet threshold " + config.pageSpeedThreshold);
-    console.log("mobile page speed " + mobileSpeed + " does" + (mobileSpeedIsOk ? "" : " not") + " meet threshold " + config.pageSpeedThreshold);
-
-    console.log("Stats for desktop:");
-    console.log(desktopPsiData.pageStats);
-    console.log(JSON.stringify(desktopPsiData, null, 4));
-
-    console.log("Stats for mobile:");
-    console.log(mobilePsiData.pageStats);
-    console.log(JSON.stringify(mobilePsiData, null, 4));
-
-    process.exit(desktopSpeedIsOk && mobileSpeedIsOk ? 0 : 1);
+    cb();
 });
+
+gulp.task('ngrok', function (cb) {
+    return ngrok.connect({ port: config.port, nokey: true }, function (err, url) {
+        log('Started ngrok tunnel: ' + url);
+        site = url;
+        cb(err);
+    });
+});
+
+gulp.task('psi-desktop', function (cb) {
+    runPsi(site,
+        ['/', '/views/pizza.html'],
+        'desktop',
+        config.pageSpeedThreshold,
+        function (psiResult) {
+            desktopPsiData = psiResult;
+            cb();
+        });
+});
+
+gulp.task('psi-mobile', function (cb) {
+    runPsi(site,
+        ['/', '/views/pizza.html'],
+        'mobile',
+        config.pageSpeedThreshold,
+        function (psiResult) {
+            mobilePsiData = psiResult;
+            cb();
+        });
+});
+
+function runPsi(host, paths, strategy, threshold, allDoneCallback) {
+    var urls = paths.map(function (path) { return host + path; }),
+        psiResult = {};
+
+    //https://github.com/caolan/async#user-content-eacharr-iterator-callback
+    async.each(urls, function (url, callback) {
+        log('Running psi for "' + url + '" on ' + strategy + ' (threshold ' + threshold + ')');
+
+        psi(url, {
+            nokey: 'true',
+            strategy: strategy,
+            threshold: threshold
+        }).then(function (data) {
+            log('Page "' + url + '" processed for ' + strategy);
+            psiResult[url] = data;
+            callback();
+        });
+    }, function (err) {
+        log('All pages processed for ' + strategy)
+        allDoneCallback(psiResult);
+    });
+}
+
+function processPsiResult(strategy, psiData, threshold, verbose) {
+    var speedIsOk = true;
+
+    for (var url in psiData) {
+        var speedScore = psiData[url].ruleGroups.SPEED.score;
+
+        if (speedScore < threshold) {
+            speedIsOk = false;
+        }
+
+        log('\nStats for "' + url + '" ' + strategy + ':' + '\n' +
+            strategy + " page speed " + speedScore +
+            " does" + (speedIsOk ? "" : " not") +
+            " meet threshold " + threshold);
+        log(psiData[url].pageStats)
+        log('')
+
+        if (verbose) {
+            log(JSON.stringify(psiData[url], null, 4));
+        }
+    }
+
+    return speedIsOk;
+}
+
+function log(msg) {
+    console.log(msg);
+}

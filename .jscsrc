@@ -16,12 +16,12 @@
     ],
     "requireOperatorBeforeLineBreak": true,
     "requireCamelCaseOrUpperCaseIdentifiers": true,
-    "maximumLineLength": {
-        "value": 100,
-        "allowComments": true,
-        "allowRegex": true
-    },
-    "validateIndentation": 4,
+    //"maximumLineLength": {
+    //    "value": 100,
+    //    "allowComments": true,
+    //    "allowRegex": true
+    //},
+    //"validateIndentation": 4,
     //"validateQuoteMarks": "'",
 
     "disallowMultipleLineStrings": true,
@@ -82,9 +82,9 @@
     "requireSpacesInConditionalExpression": true,
     "requireSpaceBeforeBlockStatements": true,
     "requireLineFeedAtFileEnd": true,
-    "disallowSpacesInsideObjectBrackets": "all",
-    "disallowSpacesInsideArrayBrackets": "all",
-    "disallowSpacesInsideParentheses": true,
+    //"disallowSpacesInsideObjectBrackets": "all",
+    //"disallowSpacesInsideArrayBrackets": "all",
+    //"disallowSpacesInsideParentheses": true,
 
     "jsDoc": {
         "checkAnnotations": true,
@@ -104,5 +104,8 @@
     "requireCommaBeforeLineBreak": null,
     "requireDotNotation": null,
     "requireMultipleVarDecl": null,
-    "requireParenthesesAroundIIFE": true
+    "requireParenthesesAroundIIFE": true,
+
+    "disallowSpacesInNamedFunctionExpression": null,
+    "disallowSpacesInFunctionDeclaration": null
 }

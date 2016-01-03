@@ -1,82 +1,83 @@
-﻿"use strict";
+﻿/* jshint node: true */
+"use strict";
 
 //https://github.com/gulpjs/gulp/blob/master/docs/getting-started.md
 //http://www.hongkiat.com/blog/access-localhost-public-address/
 //http://una.im/gulp-local-psi/
 var config = require('./gulp.config')(),
     gulp = require('gulp'),
-    //plumber = require('gulp-plumber'),
     jshint = require('gulp-jshint'), //https://github.com/spalger/gulp-jshint
     jscs = require('gulp-jscs'), //https://github.com/jscs-dev/gulp-jscs
-    imagemin = require('gulp-imagemin'),
-    del = require('del'),
+    imagemin = require('gulp-imagemin'), //https://github.com/sindresorhus/gulp-imagemin
+    del = require('del'), //https://www.npmjs.com/package/del
     connect = require('gulp-connect'), //https://www.npmjs.com/package/gulp-connect
     ngrok = require('ngrok'), //https://github.com/bubenshchykov/ngrok/issues/34#issuecomment-155420006
     psi = require('psi'), //https://github.com/addyosmani/psi
-    sequence = require('run-sequence'), //https://www.npmjs.com/package/run-sequence
-    async = require('async'), //https://github.com/caolan/async
+    gulpSequence = require('gulp-sequence'), //https://www.npmjs.com/package/gulp-sequence
+    async = require('async'), //https://github.com/caolan/async,
+    util = require('gulp-util'), //https://github.com/gulpjs/gulp-util
+    colors = util.colors,
     site,
     desktopPsiData = {},
     mobilePsiData = {};
 
 gulp.task('vet', function () {
     return gulp
-    .src(config.allJs)
-    .pipe(jshint())
-    .pipe(jshint.reporter('jshint-stylish', { verbose: true }))
-    .pipe(jscs())
-    .pipe(jscs.reporter());
+        .src(config.jsToInspect)
+        .pipe(jshint())
+        .pipe(jshint.reporter('jshint-stylish', { verbose: true }))
+        .pipe(jscs())
+        .pipe(jscs.reporter());
 });
 
-gulp.task('optimise', function (cb) {
-    return sequence(
-      'clean',
-      'all-optimisation-tasks',
-      cb
-    );
-});
+gulp.task('build', gulpSequence(
+    'clean',
+    ['html', 'images', 'css', 'js']));
 
 gulp.task('clean', function (cb) {
     clean(config.buildDir, cb);
 });
 
-gulp.task('all-optimisation-tasks', ['images', 'copy_static_files'], function (cb) {
-    log('Finished optimisation');
-    cb();
+gulp.task('html', function () {
+    info('Copying html files');
+
+    return gulp
+        .src(config.htmlFiles, { base: './' })
+        .pipe(gulp.dest(config.buildDir));
 });
 
 gulp.task('images', function () {
-    log('Copying and compressing the images');
+    info('Copying and compressing images');
 
     return gulp
-        .src(config.images)
-        .pipe(imagemin({optimizationLevel: 4}))
-        .pipe(gulp.dest(config.buildDir + 'img'));
+        .src(config.images, { base: './' })
+        .pipe(imagemin({ optimizationLevel: 4 }))
+        .pipe(gulp.dest(config.buildDir));
 });
 
-gulp.task('copy_static_files', function () {
-    return gulp.src('index.html')
-    .pipe(gulp.dest(config.buildDir))
+//TODO: concat and minify
+gulp.task('css', function () {
+    info('Copying and optimising css');
+
+    return gulp
+        .src(config.css, { base: './' })
+        .pipe(gulp.dest(config.buildDir));
 });
 
-gulp.task('psi', ['psi-seq'], function () {
-    var desktopSpeedIsOk = processPsiResult('desktop', desktopPsiData, config.pageSpeedThreshold);
-    var mobileSpeedIsOk = processPsiResult('mobile', mobilePsiData, config.pageSpeedThreshold);
-    var underThreshold = desktopSpeedIsOk && mobileSpeedIsOk;
+//TODO: concat and minify
+gulp.task('js', function () {
+    info('Copying and optimising js');
 
-    log(underThreshold ? 'Everything is under threshold' : 'Some pages are over threshold');
-    process.exit(underThreshold ? 0 : 1);
+    return gulp
+        .src(config.js, { base: './' })
+        .pipe(gulp.dest(config.buildDir));
 });
 
-gulp.task('psi-seq', function (cb) {
-    return sequence(
-      'connect',
-      'ngrok',
-      'psi-desktop',
-      'psi-mobile',
-      cb
-    );
-});
+gulp.task('psi', gulpSequence(
+    'connect',
+    'ngrok',
+    ['psi-desktop', 'psi-mobile'],
+    'psi-result'));
 
 gulp.task('connect', function (cb) {
     connect.server({
@@ -84,23 +85,22 @@ gulp.task('connect', function (cb) {
         root: config.buildDir
     });
 
-    log('Started local server from directory: ' + config.buildDir + '/');
-    log('Url: http://localhost:' + config.port);
-
+    info('Serving from "' + config.buildDir + '"');
     cb();
 });
 
 gulp.task('ngrok', function (cb) {
-    return ngrok.connect({ port: config.port, nokey: true }, function (err, url) {
-        log('Started ngrok tunnel: ' + url);
-        site = url;
-        cb(err);
-    });
+    return ngrok
+        .connect({ port: config.port, nokey: true }, function (err, url) {
+            info('Started ngrok tunnel "' + url + '"');
+            site = url;
+            cb(err);
+        });
 });
 
 gulp.task('psi-desktop', function (cb) {
     runPsi(site,
-        ['/', '/views/pizza.html'],
+        config.urlsToInspect,
         'desktop',
         config.pageSpeedThreshold,
         function (psiResult) {
@@ -111,7 +111,7 @@ gulp.task('psi-desktop', function (cb) {
 
 gulp.task('psi-mobile', function (cb) {
     runPsi(site,
-        ['/', '/views/pizza.html'],
+        config.urlsToInspect,
         'mobile',
         config.pageSpeedThreshold,
         function (psiResult) {
@@ -120,45 +120,63 @@ gulp.task('psi-mobile', function (cb) {
         });
 });
 
+gulp.task('psi-result', function () {
+    var desktopSpeedIsOk = processPsiResult('desktop', desktopPsiData, config.pageSpeedThreshold),
+        mobileSpeedIsOk = processPsiResult('mobile', mobilePsiData, config.pageSpeedThreshold),
+        underThreshold = desktopSpeedIsOk && mobileSpeedIsOk;
+
+    if (underThreshold) {
+        info('\nEverything is under threshold');
+    }
+    else {
+        error('\nSome pages are over threshold');
+    }
+
+    process.exit(underThreshold ? 0 : 1);
+});
+
 function runPsi(host, paths, strategy, threshold, allDoneCallback) {
     var urls = paths.map(function (path) { return host + path; }),
         psiResult = {};
 
+    //Run psi tasks for all paths in parallel
     //https://github.com/caolan/async#user-content-eacharr-iterator-callback
     async.each(urls, function (url, callback) {
-        log('Running psi for "' + url + '" on ' + strategy + ' (threshold ' + threshold + ')');
+        info('Starting psi for "' + url + '" on ' + strategy);
 
         psi(url, {
             nokey: 'true',
             strategy: strategy,
             threshold: threshold
         }).then(function (data) {
-            log('Page "' + url + '" processed for ' + strategy);
+            info('Finished psi for "' + url + '" on ' + strategy);
             psiResult[url] = data;
             callback();
         });
     }, function (err) {
-        log('All pages processed for ' + strategy)
+        info('All pages processed for ' + strategy);
         allDoneCallback(psiResult);
     });
 }
 
 function processPsiResult(strategy, psiData, threshold, verbose) {
-    var speedIsOk = true;
+    var speedIsOk = true,
+        logFunc = info;
 
     for (var url in psiData) {
-        var speedScore = psiData[url].ruleGroups.SPEED.score;
+        var speedScore = psiData[url].ruleGroups.SPEED.score,
+            meetsThreshold = speedScore >= threshold;
 
-        if (speedScore < threshold) {
+        if (!meetsThreshold) {
             speedIsOk = false;
+            logFunc = error;
         }
 
-        log('\nStats for "' + url + '" ' + strategy + ':' + '\n' +
-            strategy + " page speed " + speedScore +
-            " does" + (speedIsOk ? "" : " not") +
-            " meet threshold " + threshold);
-        log(psiData[url].pageStats)
-        log('')
+        logFunc('\nPage "' + url + '" has speed ' + speedScore +
+            ', which ' + (speedIsOk ? " meets" : " doesn't meet") +
+            ' threshold ' + threshold + ' on ' + strategy);
+
+        log(psiData[url].pageStats);
 
         if (verbose) {
             log(JSON.stringify(psiData[url], null, 4));
@@ -169,11 +187,20 @@ function processPsiResult(strategy, psiData, threshold, verbose) {
 }
 
 function clean(path, cb) {
-    log('Cleaning: ' + path);
+    info('Cleaning ' + path);
 
     del(path).then(function (p) {
+        info('Cleaned  ' + path);
         cb();
     });
+}
+
+function info(msg) {
+    log(colors.green(msg));
+}
+
+function error(msg) {
+    log(colors.red(msg));
 }
 
 function log(msg) {

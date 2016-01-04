@@ -1,21 +1,27 @@
 ﻿/* jshint node: true */
 "use strict";
 
+//How to debug gulp tasks: https://github.com/node-inspector/node-inspector#user-content-how-do-i-debug-gulp-tasks
+//NB: debugger is super slow for projects with many modules
+//node-debug --no-preload --hidden node_modules/ -p 8081  %appdata%\npm\node_modules\gulp\bin\gulp.js --gulpfile path-to-project\gulpfile.js myTask
+
 //https://github.com/gulpjs/gulp/blob/master/docs/getting-started.md
 //http://www.hongkiat.com/blog/access-localhost-public-address/
 //http://una.im/gulp-local-psi/
-var config = require('./gulp.config')(),
+var config = require('./gulp.config'),
     gulp = require('gulp'),
+
+    gulpSequence = require('gulp-sequence'), //https://www.npmjs.com/package/gulp-sequence
     jshint = require('gulp-jshint'), //https://github.com/spalger/gulp-jshint
     jscs = require('gulp-jscs'), //https://github.com/jscs-dev/gulp-jscs
     imagemin = require('gulp-imagemin'), //https://github.com/sindresorhus/gulp-imagemin
-    del = require('del'), //https://www.npmjs.com/package/del
     connect = require('gulp-connect'), //https://www.npmjs.com/package/gulp-connect
+    util = require('gulp-util'), //https://github.com/gulpjs/gulp-util
+
+    del = require('del'), //https://www.npmjs.com/package/del
     ngrok = require('ngrok'), //https://github.com/bubenshchykov/ngrok/issues/34#issuecomment-155420006
     psi = require('psi'), //https://github.com/addyosmani/psi
-    gulpSequence = require('gulp-sequence'), //https://www.npmjs.com/package/gulp-sequence
     async = require('async'), //https://github.com/caolan/async,
-    util = require('gulp-util'), //https://github.com/gulpjs/gulp-util
     colors = util.colors,
     site,
     desktopPsiData = {},

@@ -17,6 +17,10 @@ var config = require('./gulp.config'),
     imagemin = require('gulp-imagemin'), //https://github.com/sindresorhus/gulp-imagemin
     connect = require('gulp-connect'), //https://www.npmjs.com/package/gulp-connect
     util = require('gulp-util'), //https://github.com/gulpjs/gulp-util
+    useref = require('gulp-useref'),
+    gulpif = require('gulp-if'),
+    uglify = require('gulp-uglify'),
+    csso = require('gulp-csso'),
 
     del = require('del'), //https://www.npmjs.com/package/del
     ngrok = require('ngrok'), //https://github.com/bubenshchykov/ngrok/issues/34#issuecomment-155420006
@@ -38,7 +42,8 @@ gulp.task('lint', function () {
 
 gulp.task('build', gulpSequence(
     'clean',
-    ['html', 'images', 'css', 'js']));
+    ['html', 'images'],
+    ['optimise-view-css-js', 'optimise-main-css-js']));
 
 gulp.task('clean', function (cb) {
     clean(config.buildDir, cb);
@@ -61,21 +66,25 @@ gulp.task('images', function () {
         .pipe(gulp.dest(config.buildDir));
 });
 
-//TODO: concat and minify
-gulp.task('css', function () {
-    info('Copying and optimising css');
+gulp.task('optimise-view-css-js', function () {
+    info('Optimising view css js');
 
     return gulp
-        .src(config.css, { base: './' })
-        .pipe(gulp.dest(config.buildDir));
+        .src(config.viewHtmls)
+        .pipe(useref())
+        .pipe(gulpif('*.js', uglify()))
+        .pipe(gulpif('*.css', csso()))
+        .pipe(gulp.dest(config.buildDir + 'views/'));
 });
 
-//TODO: concat and minify
-gulp.task('js', function () {
-    info('Copying and optimising js');
+gulp.task('optimise-main-css-js', function () {
+    info('Copying and optimising main css js');
 
     return gulp
-        .src(config.js, { base: './' })
+        .src(config.mainHtml)
+        .pipe(useref())
+        .pipe(gulpif('*.js', uglify()))
+        .pipe(gulpif('*.css', csso()))
         .pipe(gulp.dest(config.buildDir));
 });
 
@@ -127,8 +136,8 @@ gulp.task('psi-mobile', function (cb) {
 });
 
 gulp.task('psi-result', function () {
-    var desktopSpeedIsOk = processPsiResult('desktop', desktopPsiData, config.pageSpeedThreshold),
-        mobileSpeedIsOk = processPsiResult('mobile', mobilePsiData, config.pageSpeedThreshold),
+    var desktopSpeedIsOk = processPsiResult('desktop', desktopPsiData, config.pageSpeedThreshold, true),
+        mobileSpeedIsOk = processPsiResult('mobile', mobilePsiData, config.pageSpeedThreshold, true),
         underThreshold = desktopSpeedIsOk && mobileSpeedIsOk;
 
     if (underThreshold) {

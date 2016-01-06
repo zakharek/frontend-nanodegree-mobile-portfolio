@@ -26,9 +26,10 @@ module.exports = {
         'views/images/**/*.*'
     ],
     css: [
-        'css/**/*.css',
-        'views/css/**/*.css'
+        'css/**/*.css'
     ],
+    viewHtmls: 'views/*.html',
+    mainHtml: '*.html',
     js: [
         'js/**/*.js',
         'views/js/**/*.js'

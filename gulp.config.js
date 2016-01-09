@@ -8,7 +8,7 @@ module.exports = {
         '/project-2048.html',
         '/project-mobile.html',
         '/project-webperf.html',
-        '/views/pizza.html'
+        //'/views/pizza.html'
     ],
     jsToInspect: [
         'js/**/*.js',
@@ -28,6 +28,7 @@ module.exports = {
     css: [
         'css/**/*.css'
     ],
+    fonts: 'fonts/**/*.*',
     viewHtmls: 'views/*.html',
     mainHtml: '*.html',
     js: [

@@ -6,14 +6,14 @@
     <meta name="description" content=" FILL ME IN ">
     <meta name="author" content=" FILL ME IN ">
     <title>Cameron Pittman: Portfolio</title>
-
-    <!-- Hmm, what is the impact of web fonts on speed? Measure it... -->
-    <link href="//fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet">
-
+    
+    <noscript>
+        <link href="fonts/fonts.css" rel="stylesheet" />
+    </noscript>
     <!-- build:css css/styles.css -->
     <link href="css/style.css" rel="stylesheet">
     <!-- endbuild -->
-    <!-- build:css css/print.css -->
+    <!-- build:css css/print.css media="print" -->
     <link href="css/print.css" media="print" rel="stylesheet">
     <!-- endbuild -->
 
@@ -28,7 +28,8 @@
         ga('send', 'pageview');
     </script>
     <script async src="//www.google-analytics.com/analytics.js"></script>
-    <!-- build:js js/app.js -->
+    <!-- build:js js/app.js async -->
+    <script async src="js/loadfonts.js"></script>
     <script async src="js/perfmatters.js"></script>
     <!-- endbuild -->
 </head>
@@ -65,15 +66,16 @@
                 </li>
 
                 <li>
-                    <img style="width: 100px;" src="views/images/pizzeria.jpg">
+                    <img style="width: 100px;" src="views/images/pizzeria_min.jpg">
                     <a href="views/pizza.html">Cam's Pizzeria</a>
                     <p>Who wants a performant pizza?</p>
                 </li>
             </ul>
         </div>
+    </div>
 
-        <footer>
-            <p>&copy; Web Performance 2014 <span id="crp-stats"></span></p>
-        </footer>
+    <footer>
+        <p>&copy; Web Performance 2014 <span id="crp-stats"></span></p>
+    </footer>
 </body>
 </html>

@@ -21,6 +21,8 @@ var config = require('./gulp.config'),
     gulpif = require('gulp-if'),
     uglify = require('gulp-uglify'),
     csso = require('gulp-csso'),
+    //replace = require('gulp-replace'),
+    googleWebFonts = require('gulp-google-webfonts'),
 
     del = require('del'), //https://www.npmjs.com/package/del
     ngrok = require('ngrok'), //https://github.com/bubenshchykov/ngrok/issues/34#issuecomment-155420006
@@ -30,6 +32,8 @@ var config = require('./gulp.config'),
     site,
     desktopPsiData = {},
     mobilePsiData = {};
+
+gulp.task('default', gulpSequence('build', 'psi'));
 
 gulp.task('lint', function () {
     return gulp
@@ -42,11 +46,35 @@ gulp.task('lint', function () {
 
 gulp.task('build', gulpSequence(
     'clean',
-    ['html', 'images'],
+    ['html', 'images', 'fonts'],
     ['optimise-view-css-js', 'optimise-main-css-js']));
 
 gulp.task('clean', function (cb) {
     clean(config.buildDir, cb);
+});
+
+//gulp.task('fonts', ['download-fonts'], function () {
+//    return gulp.src(config.mainHtml)
+//      .pipe(replace(/<link href=".*fonts\.googleapis\.com.*"[^>]*>/, function (s) {
+//          return '<link href="fonts/' + config.fontsCss + '" rel="stylesheet">';
+//      }))
+//      .pipe(gulp.dest(config.buildDir));
+//});
+
+gulp.task('fonts', function () {
+    info('Copying font files');
+
+    return gulp
+        .src(config.fonts, { base: './' })
+        .pipe(gulp.dest(config.buildDir));
+});
+
+gulp.task('donwload-fonts', function () {
+    info('Downloading Google fonts locally');
+
+    return gulp.src('./fonts.list')
+        .pipe(googleWebFonts({ cssFilename: config.fontsCss }))
+        .pipe(gulp.dest('fonts'));
 });
 
 gulp.task('html', function () {
@@ -136,8 +164,17 @@ gulp.task('psi-mobile', function (cb) {
 });
 
 gulp.task('psi-result', function () {
-    var desktopSpeedIsOk = processPsiResult('desktop', desktopPsiData, config.pageSpeedThreshold, true),
-        mobileSpeedIsOk = processPsiResult('mobile', mobilePsiData, config.pageSpeedThreshold, true),
+    var verbosity = false,
+        desktopSpeedIsOk = processPsiResult(
+            'desktop',
+            desktopPsiData,
+            config.pageSpeedThreshold,
+            verbosity),
+        mobileSpeedIsOk = processPsiResult(
+            'mobile',
+            mobilePsiData,
+            config.pageSpeedThreshold,
+            verbosity),
         underThreshold = desktopSpeedIsOk && mobileSpeedIsOk;
 
     if (underThreshold) {

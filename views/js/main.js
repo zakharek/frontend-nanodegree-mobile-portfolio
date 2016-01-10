@@ -18,7 +18,8 @@ cameron *at* udacity *dot* com
 
 // As you may have realized, this website randomly generates pizzas.
 // Here are arrays of all possible pizza ingredients.
-var pizzaIngredients = {};
+var pizzaIngredients = {}, allPizzas;
+
 pizzaIngredients.meats = [
   "Pepperoni",
   "Sausage",
@@ -507,10 +508,11 @@ function updatePositions() {
     frame++;
     window.performance.mark("mark_start_frame");
 
-    var items = document.querySelectorAll('.mover');
-    for (var i = 0; i < items.length; i++) {
-        var phase = Math.sin((document.body.scrollTop / 1250) + (i % 5));
-        items[i].style.left = items[i].basicLeft + 100 * phase + 'px';
+     var scrollDelta = document.body.scrollTop / 1250;
+
+     for (var i = 0; i < allPizzas.length; i++) {
+        var phase = Math.sin(scrollDelta + (i % 5));
+        allPizzas[i].style.left = allPizzas[i].basicLeft + 100 * phase + 'px';
     }
 
     // User Timing API to the rescue again. Seriously, it's worth learning.
@@ -524,7 +526,9 @@ function updatePositions() {
 }
 
 // runs updatePositions on scroll
-window.addEventListener('scroll', updatePositions);
+window.addEventListener('scroll', function () {
+    window.requestAnimationFrame(updatePositions);
+});
 
 // Generates the sliding pizzas when the page loads.
 document.addEventListener('DOMContentLoaded', function () {
@@ -540,5 +544,7 @@ document.addEventListener('DOMContentLoaded', function () {
         elem.style.top = (Math.floor(i / cols) * s) + 'px';
         document.querySelector("#movingPizzas1").appendChild(elem);
     }
+
+    allPizzas = document.querySelectorAll('.mover');
     updatePositions();
 });

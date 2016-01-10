@@ -33,7 +33,7 @@ var config = require('./gulp.config'),
     desktopPsiData = {},
     mobilePsiData = {};
 
-gulp.task('default', gulpSequence('build', 'psi'));
+gulp.task('default', ['psi']);
 
 gulp.task('lint', function () {
     return gulp
@@ -114,10 +114,10 @@ gulp.task('psi', gulpSequence(
     ['psi-desktop', 'psi-mobile'],
     'psi-result'));
 
-gulp.task('express', function (cb) {
+gulp.task('express', ['build'], function (cb) {
     var app = express();
     app.use(compression());
-    app.use(express.static(config.buildDir));   
+    app.use(express.static(config.buildDir));
 
     app.listen(config.port, function () {
         info('Serving from "' + config.buildDir + '"');

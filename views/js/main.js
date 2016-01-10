@@ -450,10 +450,13 @@ var resizePizzas = function (size) {
 
     // Iterates through pizza elements on the page and changes their widths
     function changePizzaSizes(size) {
+
+        // KATE: Moved outside of the loop. Was the main cause for pure performance
         var pizzaContainer = document.querySelectorAll(".randomPizzaContainer");
 
         if (!pizzaContainer.length) return;
 
+        // KATE: Moved outside of the loop as it is not specific for each iteration
         var firstPizza = pizzaContainer[0];
         var dx = determineDx(firstPizza, size);
         var newwidth = (firstPizza.offsetWidth + dx) + 'px';
@@ -508,6 +511,7 @@ function updatePositions() {
     frame++;
     window.performance.mark("mark_start_frame");
 
+    // KATE: Moved some computation outside of the loop
      var scrollDelta = document.body.scrollTop / 1250;
 
      for (var i = 0; i < allPizzas.length; i++) {
@@ -527,6 +531,7 @@ function updatePositions() {
 
 // runs updatePositions on scroll
 window.addEventListener('scroll', function () {
+    // KATE: When doing animation-like work we always should call requestAnimationFrame
     window.requestAnimationFrame(updatePositions);
 });
 
@@ -545,6 +550,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelector("#movingPizzas1").appendChild(elem);
     }
 
+    // KATE: "Cached" all pizzas to avoid performance hit
     allPizzas = document.querySelectorAll('.mover');
     updatePositions();
 });

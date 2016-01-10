@@ -5,9 +5,9 @@ module.exports = {
     buildDir: "build/",
     urlsToInspect: [
         '/',
-        '/project-2048.html',
-        '/project-mobile.html',
-        '/project-webperf.html',
+        //'/project-2048.html',
+        //'/project-mobile.html',
+        //'/project-webperf.html',
         //'/views/pizza.html'
     ],
     jsToInspect: [
@@ -29,6 +29,7 @@ module.exports = {
         'css/**/*.css'
     ],
     fonts: 'fonts/**/*.*',
+    fontsCss: 'fonts.css',
     viewHtmls: 'views/*.html',
     mainHtml: '*.html',
     js: [
@@ -36,5 +37,6 @@ module.exports = {
         'views/js/**/*.js'
     ],
     port: 8000,
-    pageSpeedThreshold: 90
+    pageSpeedThreshold: 90,
+    psiVerbose: true
 };

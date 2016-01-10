@@ -15,14 +15,14 @@ var config = require('./gulp.config'),
     jshint = require('gulp-jshint'), //https://github.com/spalger/gulp-jshint
     jscs = require('gulp-jscs'), //https://github.com/jscs-dev/gulp-jscs
     imagemin = require('gulp-imagemin'), //https://github.com/sindresorhus/gulp-imagemin
-    connect = require('gulp-connect'), //https://www.npmjs.com/package/gulp-connect
     util = require('gulp-util'), //https://github.com/gulpjs/gulp-util
     useref = require('gulp-useref'),
     gulpif = require('gulp-if'),
     uglify = require('gulp-uglify'),
     csso = require('gulp-csso'),
-    //replace = require('gulp-replace'),
     googleWebFonts = require('gulp-google-webfonts'),
+    express = require('express'),
+    compression = require('compression'),
 
     del = require('del'), //https://www.npmjs.com/package/del
     ngrok = require('ngrok'), //https://github.com/bubenshchykov/ngrok/issues/34#issuecomment-155420006
@@ -52,14 +52,6 @@ gulp.task('build', gulpSequence(
 gulp.task('clean', function (cb) {
     clean(config.buildDir, cb);
 });
-
-//gulp.task('fonts', ['download-fonts'], function () {
-//    return gulp.src(config.mainHtml)
-//      .pipe(replace(/<link href=".*fonts\.googleapis\.com.*"[^>]*>/, function (s) {
-//          return '<link href="fonts/' + config.fontsCss + '" rel="stylesheet">';
-//      }))
-//      .pipe(gulp.dest(config.buildDir));
-//});
 
 gulp.task('fonts', function () {
     info('Copying font files');
@@ -117,19 +109,21 @@ gulp.task('optimise-main-css-js', function () {
 });
 
 gulp.task('psi', gulpSequence(
-    'connect',
+    'express',
     'ngrok',
     ['psi-desktop', 'psi-mobile'],
     'psi-result'));
 
-gulp.task('connect', function (cb) {
-    connect.server({
-        port: config.port,
-        root: config.buildDir
-    });
+gulp.task('express', function (cb) {
+    var app = express();
+    app.use(compression());
+    app.use(express.static(config.buildDir));   
 
-    info('Serving from "' + config.buildDir + '"');
-    cb();
+    app.listen(config.port, function () {
+        info('Serving from "' + config.buildDir + '"');
+        info('Listening on port ' + config.port + '...');
+        cb();
+    });
 });
 
 gulp.task('ngrok', function (cb) {
@@ -164,17 +158,16 @@ gulp.task('psi-mobile', function (cb) {
 });
 
 gulp.task('psi-result', function () {
-    var verbosity = false,
-        desktopSpeedIsOk = processPsiResult(
+    var desktopSpeedIsOk = processPsiResult(
             'desktop',
             desktopPsiData,
             config.pageSpeedThreshold,
-            verbosity),
+            config.psiVerbose),
         mobileSpeedIsOk = processPsiResult(
             'mobile',
             mobilePsiData,
             config.pageSpeedThreshold,
-            verbosity),
+            config.psiVerbose),
         underThreshold = desktopSpeedIsOk && mobileSpeedIsOk;
 
     if (underThreshold) {

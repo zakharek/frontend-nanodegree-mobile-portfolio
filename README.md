@@ -39,7 +39,7 @@ This will run the default task that will:
   * Start local server from the build directory
   * Start ngrok tunnel to get a public URL for the site to be able to run it through PageSpeed
   * Run PageSpeed for index.html and capture the results
-  * Analyse the PageSpeed results and output to the screen. 
+  * Analyse the PageSpeed results and output to the screen
 
 Gulp process will exit with code 0 (zero) only if the PageSpeed results for desktop and mobile are under 90 point threshold.
 

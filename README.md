@@ -1,4 +1,6 @@
-### Website Performance Optimization portfolio project
+## Website Performance Optimization portfolio project
+
+###  Optimizing critical rendering path of index.html 
 
 #### Prerequisites:
 
@@ -40,4 +42,14 @@ This will run the default task that will:
   * Analyse the PageSpeed results and output to the screen. 
 
 Gulp process will exit with code 0 (zero) only if the PageSpeed results for desktop and mobile are under 90 point threshold.
+
+
+
+### Optimising pizza.html performance
+
+Main optimisations done (see code comments for details):
+
+* Optimise changePizzaSizes function
+* Optimise updatePositions function
+* Use window.requestAnimationFrame in scroll event handler
 

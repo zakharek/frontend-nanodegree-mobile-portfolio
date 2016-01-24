@@ -508,17 +508,20 @@ function logAverageFrame(times) {   // times is the array of User Timing measure
 // The following code for sliding background pizzas was pulled from Ilya's demo found at:
 // https://www.igvita.com/slides/2012/devtools-tips-and-tricks/jank-demo.html
 
+var updating = false;
+
 // Moves the sliding background pizzas based on scroll position
 function updatePositions() {
     frame++;
     window.performance.mark("mark_start_frame");
 
     // KATE: Moved some computation outside of the loop
-     var scrollDelta = document.body.scrollTop / 1250;
+    var lastScrollDelta = document.body.scrollTop / 1250,
+        left;
 
-     for (var i = 0; i < allPizzas.length; i++) {
-        var phase = Math.sin(scrollDelta + (i % 5));
-        allPizzas[i].style.left = allPizzas[i].basicLeft + 100 * phase + 'px';
+    for (var i = 0, len = allPizzas.length; i < len; i++) {
+        left = allPizzas[i].basicLeft + 100 * Math.sin(lastScrollDelta + allPizzas[i].phasePrecalc);
+        allPizzas[i].style.left = left + 'px';
     }
 
     // User Timing API to the rescue again. Seriously, it's worth learning.
@@ -529,25 +532,36 @@ function updatePositions() {
         var timesToUpdatePosition = window.performance.getEntriesByName("measure_frame_duration");
         logAverageFrame(timesToUpdatePosition);
     }
+
+    //KATE: allow further requestAnimationFrame's to be called
+    updating = false;
+}
+
+//KATE: Debounce scroll handler. Inspired by: http://www.html5rocks.com/en/tutorials/speed/animations/
+function onScroll() {
+    if (!updating) {
+        // KATE: When doing animation-like work we always should call requestAnimationFrame
+        requestAnimationFrame(updatePositions);
+        updating = true;
+    }
 }
 
 // runs updatePositions on scroll
-window.addEventListener('scroll', function () {
-    // KATE: When doing animation-like work we always should call requestAnimationFrame
-    window.requestAnimationFrame(updatePositions);
-});
+window.addEventListener('scroll', onScroll, false);
 
 // Generates the sliding pizzas when the page loads.
 document.addEventListener('DOMContentLoaded', function () {
     var cols = 8;
     var s = 256;
-    for (var i = 0; i < 200; i++) {
+    //KATE: decreasing number of pizzas to 24
+    for (var i = 0; i < 24; i++) {
         var elem = document.createElement('img');
         elem.className = 'mover';
-        elem.src = "images/pizza.png";
-        elem.style.height = "100px";
-        elem.style.width = "73.333px";
+        //KATE: use smaller image to avoid scaling using styles
+        elem.src = "images/pizza-small.png";
         elem.basicLeft = (i % cols) * s;
+        //KATE: "cache" some calculations
+        elem.phasePrecalc = i % 5;
         elem.style.top = (Math.floor(i / cols) * s) + 'px';
         document.querySelector("#movingPizzas1").appendChild(elem);
     }

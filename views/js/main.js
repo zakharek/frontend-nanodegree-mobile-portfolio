@@ -454,7 +454,9 @@ var resizePizzas = function (size) {
         // KATE: Moved outside of the loop. Was the main cause for pure performance
         var pizzaContainer = document.querySelectorAll(".randomPizzaContainer");
 
-        if (!pizzaContainer.length) return;
+        if (!pizzaContainer.length) {
+            return;
+        }
 
         // KATE: Moved outside of the loop as it is not specific for each iteration
         var firstPizza = pizzaContainer[0];

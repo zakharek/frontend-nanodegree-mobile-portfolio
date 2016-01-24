@@ -11,11 +11,11 @@
 var config = require('./gulp.config'),
     gulp = require('gulp'),
 
-    gulpSequence = require('gulp-sequence'), //https://www.npmjs.com/package/gulp-sequence
-    jshint = require('gulp-jshint'), //https://github.com/spalger/gulp-jshint
-    jscs = require('gulp-jscs'), //https://github.com/jscs-dev/gulp-jscs
-    imagemin = require('gulp-imagemin'), //https://github.com/sindresorhus/gulp-imagemin
-    util = require('gulp-util'), //https://github.com/gulpjs/gulp-util
+    gulpSequence = require('gulp-sequence'),
+    jshint = require('gulp-jshint'),
+    jscs = require('gulp-jscs'),
+    imagemin = require('gulp-imagemin'),
+    util = require('gulp-util'),
     useref = require('gulp-useref'),
     gulpif = require('gulp-if'),
     uglify = require('gulp-uglify'),
@@ -23,11 +23,13 @@ var config = require('./gulp.config'),
     googleWebFonts = require('gulp-google-webfonts'),
     express = require('express'),
     compression = require('compression'),
+    replace = require('gulp-replace'),
+    fs = require('fs'),
 
-    del = require('del'), //https://www.npmjs.com/package/del
+    del = require('del'),
     ngrok = require('ngrok'), //https://github.com/bubenshchykov/ngrok/issues/34#issuecomment-155420006
-    psi = require('psi'), //https://github.com/addyosmani/psi
-    async = require('async'), //https://github.com/caolan/async,
+    psi = require('psi'),
+    async = require('async'),
     colors = util.colors,
     site,
     desktopPsiData = {},
@@ -47,7 +49,8 @@ gulp.task('lint', function () {
 gulp.task('build', gulpSequence(
     'clean',
     ['html', 'images', 'fonts'],
-    ['optimise-view-css-js', 'optimise-main-css-js']));
+    ['optimise-view-css-js', 'optimise-main-css-js'],
+    ['inline-css']));
 
 gulp.task('clean', function (cb) {
     clean(config.buildDir, cb);
@@ -105,6 +108,17 @@ gulp.task('optimise-main-css-js', function () {
         .pipe(useref())
         .pipe(gulpif('*.js', uglify()))
         .pipe(gulpif('*.css', csso()))
+        .pipe(gulp.dest(config.buildDir));
+});
+
+gulp.task('inline-css', function () {
+    info('Inlining css');
+
+    return gulp.src(config.buildDir + "index.html")
+        .pipe(replace(/[<]link .*?href=["']css\/styles\.css["'].*?[\/]{0,1}\>/, function(s) {
+            var style = fs.readFileSync(config.buildDir + "css/styles.css", 'utf8');
+            return '<style>\n' + style + '\n</style>';
+        }))
         .pipe(gulp.dest(config.buildDir));
 });
 
